@@ -29,3 +29,5 @@ I would love to get some feedback about the IfcName and IfcDescription
 
 But perhaps there are also some improvements in the Python script.
 Or perhaps some thoughts on adding more information from the original to the Parts
+
+https://creativecommons.org/licenses/by-nc-sa/3.0/deed.nl - http://www.internetrechten.nl/disclaimer/
