@@ -53,7 +53,8 @@ def defParameters(item, itemHost, obParamHost, strParam = None):
 			if strValue is None: 
 				strValue = ''		
 		try:
-			item.LookupParameter(strParam).Set(strValue)	# or check first if a change is needed
+			if item.LookupParameter(strParam).IsReadOnly == False:	# parameter must be changable
+				item.LookupParameter(strParam).Set(strValue)	# or check first if a change is needed
 			lstTMP.append([strParam,strValue])
 			setTMP.add(strParam)
 		except:
@@ -91,6 +92,7 @@ TransactionManager.Instance.EnsureInTransaction(doc)
 
 for item in lstCollector:
 #	try:
+		# lstOUT.append(lstTMP)	# complete report of all the changes - only use if neccesary
 		strComments = ''		# reset the comments
 		lstTMP = []				# reset the temp list 
 		setTMP.clear()			# reset the changed parameter list for this part
