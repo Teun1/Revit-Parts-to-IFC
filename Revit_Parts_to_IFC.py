@@ -92,9 +92,9 @@ TransactionManager.Instance.EnsureInTransaction(doc)
 
 for item in lstCollector:
 #	try:
-		# lstOUT.append(lstTMP)	# complete report of all the changes - only use if neccesary
+		# lstOUT.append(lstTMP)		# complete report of all the changes - only use if neccesary
 		strComments = ''		# reset the comments
-		lstTMP = []				# reset the temp list 
+		lstTMP = []			# reset the temp list 
 		setTMP.clear()			# reset the changed parameter list for this part
 		itemOriginal = item		# save the item that is beeing checked to find the original Host
 		while True:
