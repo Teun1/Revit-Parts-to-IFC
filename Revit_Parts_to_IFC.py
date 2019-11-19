@@ -71,7 +71,12 @@ def defLayers(obType, item, obLink = None):
 					obMaterial = obLink.GetLinkDocument().GetElement(obLayer.MaterialId)
 				else:
 					obMaterial = doc.GetElement(obLayer.MaterialId)
-				strDict = strDict + ':' + str(obMaterial.Name)		# sometimes <ByCategory> in the IFC > change it in the model ! 
+				if obLayer.MaterialId == ElementId.InvalidElementId:
+					lstOUT.append(['First change the <ByCategory> materials in this Type',obType, obLayer.Function])
+					strDict = strDict + ':' + '<ByCategory>' + str(obLayer.Function)		# sometimes <ByCategory> in the IFC > change it in the model !
+				else:				
+					strDict = strDict + ':' + str(obMaterial.Name) 
+					
 				# strDict = strDict + '-' + str(obLayer.Width) # perhaps in future
 				setLayer[strDict] = obLayer.Function
 				# dig deeper in the Materials?: AppearanceAddetId / StructuralAssetId / ThermalAssetId 
@@ -92,9 +97,9 @@ TransactionManager.Instance.EnsureInTransaction(doc)
 
 for item in lstCollector:
 #	try:
-		# lstOUT.append(lstTMP)		# complete report of all the changes - only use if neccesary
+		# lstOUT.append(lstTMP)	# complete report of all the changes - only use if neccesary
 		strComments = ''		# reset the comments
-		lstTMP = []			# reset the temp list 
+		lstTMP = []				# reset the temp list 
 		setTMP.clear()			# reset the changed parameter list for this part
 		itemOriginal = item		# save the item that is beeing checked to find the original Host
 		while True:
