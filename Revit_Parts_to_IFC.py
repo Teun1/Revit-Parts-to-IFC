@@ -15,6 +15,9 @@ pyt_path = r'C:\Program Files (x86)\IronPython 2.7\Lib'
 sys.path.append(pyt_path)
 
 doc = DocumentManager.Instance.CurrentDBDocument
+uiapp = DocumentManager.Instance.CurrentUIApplication
+app = uiapp.Application
+intVersion = int(app.VersionNumber) # some things are Revit version specific
 
 # // script Header =========================================
 
@@ -195,18 +198,22 @@ for item in lstCollector:
 					defParameters(item, itemHost, None, ['IsExternal', strValue])
 
 				# The exception of course ===================================================================
-				if item.LookupParameter('IfcName'):
+				if item.LookupParameter('IfcName') or item.LookupParameter('Reference'):
 					strValue = obType.get_Parameter(BuiltInParameter.ALL_MODEL_TYPE_NAME).AsString()
 					strValue2 = item.get_Parameter(BuiltInParameter.DPART_MATERIAL_ID_PARAM).AsValueString()
 					if item.get_Parameter(BuiltInParameter.DPART_LAYER_WIDTH):		# add the layer thickness to the name
 						obParam = item.get_Parameter(BuiltInParameter.DPART_LAYER_WIDTH)
-						ProjectUnits = obParam.DisplayUnitType
+						if intVersion > 2020:
+							ProjectUnits = obParam.GetUnitTypeId()
+						else:
+							ProjectUnits = obParam.DisplayUnitType
 						strValue3 = ' - ' + str(UnitUtils.ConvertFromInternalUnits(obParam.AsDouble(),ProjectUnits))
 					else:
 						strValue3 = ''
 					if setLayer.get(strValue + ':' + strValue2) is not None:		# add the layer function to the name
 						strValue2 = strValue2 + strValue3 + ':' + str(setLayer.get(strValue + ':' + strValue2))
 					strValue = strValue2 + ': ' + str(item.Id)						# Id of the Part
+				if item.LookupParameter('IfcName'):
 					defParameters(item, itemHost, obParam, ['IfcName',strValue])
 				if item.LookupParameter('Reference'):
 					obParam = item.LookupParameter('Reference')
@@ -215,7 +222,7 @@ for item in lstCollector:
 				lstCount.append(len(setTMP))
 					
 		if len(lstTMP)<2:
-			lstOUT.append(["hmmm, not so smooth as it should",item,itemHost,obType])
+			lstOUT.append([["hmmm, not so smooth as it should","no IFC override Parameter changed for this Part"],item,itemHost,obType])
 #	except:
 #		lstOUT.append(item)	
 
