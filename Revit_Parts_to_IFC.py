@@ -1,3 +1,5 @@
+# version 21-11-30 > Change Workset as Host / Link option
+# version 21-05-28
 # // HEADER ==================================================
 
 import clr
@@ -28,6 +30,8 @@ setType = set()		# a set to determine if a System Family has been checked for La
 setLayer = {0:0}	# a dictionary with Layer names
 strComments = ''	# a string to add a comment to the Part > needed for visual filtering / finding failures etc
 lstCount = []		# a counter for changed items
+boWorkset = IN[0]	# optional set Workset as the Host
+lstWorkset = [0, 0, 0]	# list Workset changes
 
 # // ==========================================================
 # // Functions ================================================
@@ -89,6 +93,20 @@ def defLayers(obType, item, obLink = None):
 			setLayer[strDict] = 'UnNone'
 		obLink = None
 
+def defWorkset(item, host):
+	try:
+		idWorkset = host.WorksetId.IntegerValue
+		if item.WorksetId.IntegerValue != idWorkset:
+			obParam = item.get_Parameter(BuiltInParameter.ELEM_PARTITION_PARAM)
+			obParam.Set(idWorkset)
+			lstWorkset[0] = lstWorkset[0] + 1
+		else:
+			lstWorkset[1] = lstWorkset[1] + 1
+	except:
+		lstWorkset[2] = lstWorkset[2] + 1
+		lstWorkset.append([item, host])
+		pass
+
 # // ==========================================================
 # // Script ===================================================
 
@@ -113,10 +131,15 @@ for item in lstCollector:
 			if not itemHost:	# then it must be inside a link
 				strComments = strComments + 'Linked Part - '
 				obLink = doc.GetElement(obSourceElementId.LinkInstanceId)
+				if boWorkset == True: 
+					x = defWorkset(item, obLink)
 				itemHost = obLink.GetLinkDocument().GetElement(obSourceElementId.LinkedElementId)
 				obType = obLink.GetLinkDocument().GetElement(itemHost.GetTypeId())
 				defLayers(obType, item, obLink)
 				break
+			else:
+				if boWorkset == True: 
+					x = defWorkset(item, itemHost)
 			if item.Category.Id != itemHost.Category.Id:
 				obType = doc.GetElement(itemHost.get_Parameter(BuiltInParameter.SYMBOL_ID_PARAM).AsElementId())
 				defLayers(obType, item)
@@ -231,7 +254,17 @@ if len(lstOUT)<1:
 
 TransactionManager.Instance.TransactionTaskDone()
 
-OUT = lstOUT, [
-str(sum(lstCount)) + ' changed Parameters', 
-str(len(lstCount)) + ' changed (hidden nested) Parts', 
-str(len(setType)) + ' different original Types']
+if boWorkset == True:
+	lstWorkset[0] = str(lstWorkset[0]) + ' changed Worksets'
+	lstWorkset[1] = str(lstWorkset[1]) + ' already correct Worksets'
+	lstWorkset[2] = str(lstWorkset[2]) + ' errors while setting Worksets'
+	
+	OUT = lstOUT, [
+	str(sum(lstCount)) + ' changed Parameters', 
+	str(len(lstCount)) + ' changed (hidden nested) Parts', 
+	str(len(setType)) + ' different original Types'], lstWorkset
+else:
+	OUT = lstOUT, [
+	str(sum(lstCount)) + ' changed Parameters', 
+	str(len(lstCount)) + ' changed (hidden nested) Parts', 
+	str(len(setType)) + ' different original Types'],
