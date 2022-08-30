@@ -1,5 +1,7 @@
-# version 21-11-30 > Change Workset as Host / Link option
 # version 21-05-28
+# version 21-11-30 > Change Workset as Host / Link option
+# version 22-08-30 > Revit 2023
+# ! still IronPython
 # // HEADER ==================================================
 
 import clr
@@ -36,7 +38,7 @@ lstWorkset = [0, 0, 0]	# list Workset changes
 # // ==========================================================
 # // Functions ================================================
 
-def defParameters(item, itemHost, obParamHost, strParam = None):
+def defParameters(item, itemHost, obParamHost, strParam = None, boUpdate = False):
 	if strParam == None:
 		strParam = obParamHost.Definition.Name
 	if not isinstance(strParam,str):
@@ -44,28 +46,30 @@ def defParameters(item, itemHost, obParamHost, strParam = None):
 		strParam = strParam[0]
 	else:
 		strValue = None
-	if item.LookupParameter(strParam) and strParam not in setTMP:
-		if strValue == None:
-			strST = obParamHost.StorageType
-			if strST == StorageType.String: 
-				strValue = obParamHost.AsString()
-			elif strST == StorageType.ElementId: 
-				strValue = obParamHost.AsElementId()
-			elif strST == StorageType.Double:
-			#	ProjectUnits = obParamHost.DisplayUnitType	 # not needed here in this script
-			#	strValue = UnitUtils.ConvertFromInternalUnits(obParamHost.AsDouble(),ProjectUnits)
-				strValue = obParamHost.AsDouble()
-			else: 
-				strValue = obParamHost.AsInteger()
-			if strValue is None: 
-				strValue = ''		
-		try:
-			if item.LookupParameter(strParam).IsReadOnly == False:	# parameter must be changable
-				item.LookupParameter(strParam).Set(strValue)	# or check first if a change is needed
-			lstTMP.append([strParam,strValue])
-			setTMP.add(strParam)
-		except:
-			lstOUT(['failure',item,strParam,strValue])
+	if item.LookupParameter(strParam):
+		if strParam not in setTMP or boUpdate == True:
+			if strValue == None:
+				strST = obParamHost.StorageType
+				if strST == StorageType.String: 
+					strValue = obParamHost.AsString()
+				elif strST == StorageType.ElementId: 
+					strValue = obParamHost.AsElementId()
+				elif strST == StorageType.Double:
+				#	ProjectUnits = obParamHost.DisplayUnitType	 # not needed here in this script
+				#	strValue = UnitUtils.ConvertFromInternalUnits(obParamHost.AsDouble(),ProjectUnits)
+					strValue = obParamHost.AsDouble()
+				else: 
+					strValue = obParamHost.AsInteger()
+				if strValue is None: 
+					strValue = ''		
+			try:
+				if item.LookupParameter(strParam).IsReadOnly == False:	# parameter must be changable
+					if item.LookupParameter(strParam) != strValue:	# check if a change is needed
+						item.LookupParameter(strParam).Set(strValue)
+						lstTMP.append([strParam,strValue])
+						setTMP.add(strParam)
+			except:
+				lstOUT(['failure',item,strParam,strValue])
 
 def defLayers(obType, item, obLink = None):
 	if obType.Id not in setType:
@@ -176,6 +180,18 @@ for item in lstCollector:
 				for obParam in obType.Parameters:
 					if str(obParam.Definition.ParameterGroup) == 'PG_IFC':
 						defParameters(item, itemHost, obParam)
+				if intVersion > 2022: # starting Revit 2023 there are new IFC mapping parameters
+					if itemHost.get_Parameter(BuiltInParameter.IFC_EXPORT_ELEMENT) == 0: # Basic value
+						obParam = obType.get_Parameter(BuiltInParameter.IFC_EXPORT_ELEMENT_TYPE) 
+						defParameters(item, itemHost, obParam, 'Export to IFC',True) # change again based on Type
+					strValue = itemHost.get_Parameter(BuiltInParameter.IFC_EXPORT_ELEMENT_AS).AsString()
+					if strValue == "" or strValue == None: # Basic value
+						obParam = obType.get_Parameter(BuiltInParameter.IFC_EXPORT_ELEMENT_TYPE_AS)
+						defParameters(item, itemHost, obParam, 'Export to IFC As',True) # change again based on Type
+					strValue = itemHost.get_Parameter(BuiltInParameter.IFC_EXPORT_PREDEFINEDTYPE).AsString()
+					if strValue == "" or strValue == None: # Basic value
+						obParam = obType.get_Parameter(BuiltInParameter.IFC_EXPORT_PREDEFINEDTYPE_TYPE)
+						defParameters(item, itemHost, obParam, 'IFC Predefined Type',True) # change again based on Type
 
 				# Instance specific Parameters ===============================================================
 				if itemHost.LookupParameter('IsExternal'):
